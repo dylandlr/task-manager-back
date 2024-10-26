@@ -1,0 +1,36 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: npm install
+      working-directory: ./backend
+
+    - name: Build backend
+      run: npm run build
+      working-directory: ./backend
+
+    - name: Deploy to Google Cloud Run
+      env:
+        PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        SERVICE_NAME: task-manager-backend
+        REGION: us-central1
+      run: |
+        gcloud auth activate-service-account --key-file="${{ secrets.GCP_SA_KEY }}"
+        gcloud config set project $PROJECT_ID
+        gcloud builds submit --config=backend/cloudbuild.yml
